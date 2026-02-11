@@ -1,0 +1,16 @@
+merlin*/
+ciderpres*/
+/*.2mg
+/*.po
+.vscode/
+src/VERSION.S
+src/FONTSRC.S
+src/XPOS_TABLE.S
+src/SPRITES.S
+bin/DRAW*
+bin/_File*
+bin/LOAD*
+bin/SPACEP*
+SYSTEM/SPACEPAR*
+images/
+venv/

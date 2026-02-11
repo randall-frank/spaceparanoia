@@ -1,0 +1,37 @@
+
+Simple memory map:
+
+0800 - HGR scanline table MSB
+0900 - HGR scanline table LSB
+0a00 - div by 7 byte table
+0b00 - div by 7 bit table
+0c00 - FONT data - 1k
+1000 - graphics drawing code (text/sprites)
+     - utilities: Random numbers, joystick, etc
+2000 - boot loader (2800->1000) then HGR
+4000 - HGR2
+6000 - Game code
+8000 - Sprite data (0-7)
+9000 - Sprite data (8-15)
+a000 - Sprite data (16-23)
+
+Sprite data:
+
+Sprite starts on page boundary
+
+3 bytes/scanline
+up to 12 scanlines   (36 bytes/preshifted image, 7 preshifted images)
+252 bytes/image
+
+One sprite:
+- page 0 - 256 bytes for the sprite pixels
+- page 1 - 256 bytes for the sprite mask  (1=pixel from background)
+
+Sprites are always drawn on even columns (color preservation)
+0-127 = x coord/2
+0-191 = y coord
+
+thus, each sprite is 512 bytes (page aligned) and 8 sprites per 4k.
+
+
+22 bytes wide, 122 tall
