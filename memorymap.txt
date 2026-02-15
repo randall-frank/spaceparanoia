@@ -6,14 +6,41 @@ Simple memory map:
 0a00 - div by 7 byte table
 0b00 - div by 7 bit table
 0c00 - FONT data - 1k
-1000 - graphics drawing code (text/sprites)
-     - utilities: Random numbers, joystick, etc
-2000 - boot loader (2800->1000) then HGR
-4000 - HGR2
-6000 - Game code
+1000 - ProDOS I/O buffer (1k)
+1400 - graphics drawing code (text/sprites)
+     - utilities: Random numbers, joystick, I/O, etc
+2000 - boot loader (2800->0800) then HGR
+4000 - Game code
 8000 - Sprite data (0-7)
 9000 - Sprite data (8-15)
 a000 - Sprite data (16-23)
+
+11 = ship
+
+offset = $58
+1248124
+..**... 0c
+..**... 0c
+.****.. 1e
+*.**.*. 2d
+******. 3f
+******. 3f
+..**... 0c
+.****.. 1e
+1248124
+
+12 = shield
+offset = $60
+1248124
+..**... 0c
+.****.. 1e
+**..**. 33
+....... 00
+..**... 0c
+.****.. 1e
+**..**. 33
+....... 1e
+1248124
 
 Sprite data:
 
@@ -33,5 +60,28 @@ Sprites are always drawn on even columns (color preservation)
 
 thus, each sprite is 512 bytes (page aligned) and 8 sprites per 4k.
 
-
 22 bytes wide, 122 tall
+
+Sprites are in 3 4k "banks" of 8 sprites
+
+$7000 - core ships/icons
+0=player ship
+1=player cursor
+2=Fuel canister
+3=Shield canister
+4-7=Explosions
+
+$8000 - level ships
+0-3=walls
+4-7=ships
+
+$9000 - level boss images
+0-1=missiles
+2-7=body
+
+These are all stored in the file: "SPACEPARA.DATA"
+
+This file can be 64k for 16 "banks" of sprites.  The first 4k bank
+is the "core" block.  If the next 3 banks are random bosses, then
+we have 12 levels of sprites for the rest of the file.
+

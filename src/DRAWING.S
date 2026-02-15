@@ -3,15 +3,15 @@
          
          dsk   ../bin/DRAWING#060800
          typ   $06
-
+         cyc
          put   COMMON.S
 
 * The first table is the scanline table which is 192 bytes
 * thus there is enough space for a 21 entry jmp table before
 * the first table while avoiding cross page access.
 
+         jmp   Initialize_lcl
          jmp   JoyUpdate_lcl
-         jmp   RandInit_lcl
          jmp   Rand_lcl
          jmp   DrawChar_lcl
          jmp   DrawStr_lcl
@@ -20,6 +20,7 @@
          jmp   DrawRect_lcl
          jmp   DrawBlock_lcl
          jmp   DrawDither_lcl
+         jmp   DrawHLine_lcl
          jmp   PlaySnd_lcl
 
          put   SCANLINE_TBL.S   ; 192*2 bytes
@@ -35,7 +36,17 @@
 FontBase
          put   FONTSRC.S        ; $400 bytes
 
-         ds    \                ; this should result in alignment with $1000
+         ds    \
+
+PDOS_io_buffer                  ; ProDOS I/O buffer: 1K, page aligned
+         ds    1024
+
+         ds    \                ; this should result in alignment with $1400
+
+* Initialize all game systems
+Initialize_lcl
+         jsr   InitializeIO
+         jmp   RandInit_lcl
 
 tmp_x    = tmp0
 tmp_cnt  = tmp1
@@ -348,7 +359,99 @@ PntLeftByte
          hex   050a1428502040
 PntRightByte
          hex   00000000000102
-         
+
+* gr_idx is the "color" black, white, color
+* start=gr_xpos,gr_ypos 
+* delta=gr_width 
+DrawHLine_lcl
+         ldy   gr_ypos
+         lda   ScanlineTblHI,y
+         sta   HI
+         lda   ScanlineTblLO,y
+         sta   LO
+         lda   gr_idx
+         bne   :other
+
+:loop0   ldx   gr_xpos
+         lda   XPosByte,x
+         tay
+         lda   XPosShift,x
+         tax
+         lda   MaskBak,x
+         and   (LO),y
+         sta   (LO),y
+         cpx   #6
+         bne   :next
+         iny
+         lda   #$fe
+         and   (LO),y
+         sta   (LO),y
+:next    dec   gr_width
+         bne   :inc
+         rts    
+:inc     inc   gr_xpos
+         bne   :loop0
+         rts
+
+:other   cmp   #2
+         beq   :color
+         lda   #>MaskCol1
+         sta   ColMask+2
+         lda   #<MaskCol1
+         sta   ColMask+1
+         jmp   :loop1
+:color   lda   #>MaskCol2
+         sta   ColMask+2
+         lda   #<MaskCol2
+         sta   ColMask+1
+:loop1   ldx   gr_xpos
+         lda   XPosByte,x
+         tay
+         lda   XPosShift,x
+         tax
+         lda   MaskBak,x
+         and   (LO),y
+ColMask  ora   MaskCol1,x
+         sta   (LO),y
+         cpx   #6
+         bne   :next1
+         iny
+         lda   #$fe
+         and   (LO),y
+         ora   #$81
+         sta   (LO),y
+:next1   dec   gr_width
+         bne   :inc1
+         rts    
+:inc1    inc   gr_xpos
+         bne   :loop1
+         rts
+
+MaskCol1 hex   83868c98b0e0c0
+MaskCol2 hex   82848890a0c080
+MaskBak  hex   fcf9f3e7cf9fbf
+
+* White
+* 1248 124 8    1248 124 8  col    bak
+* 1100 000 1    0000 000 1  83     fc 
+* 0110 000 1    0000 000 1  86     f9
+* 0011 000 1    0000 000 1  8c     f3
+* 0001 100 1    0000 000 1  98     e7
+* 0000 110 1    0000 000 1  b0     cf
+* 0000 011 1    0000 000 1  e0     9f
+* 0000 001 1    1000 000 1  c0 81  bf fe  ; special 2 byte case
+
+* Color
+* 1248 124 8    1248 124 8  col    
+* 0100 000 1    0000 000 1  82      
+* 0010 000 1    0000 000 1  84     
+* 0001 000 1    0000 000 1  88     
+* 0000 100 1    0000 000 1  90     
+* 0000 010 1    0000 000 1  a0     
+* 0000 001 1    0000 000 1  c0     
+* 0000 000 1    1000 000 1  80 81 
+
+
 * New random number generator
 * Seed with some initial value
 
@@ -519,3 +622,83 @@ sef12    dfb $30,$0b ; oboe (warble?  laser)
 sef13    dfb $30,$07 ; french horn (fail buzzer?)
 sef14    dfb $01,$15 ; pass beep
 sef15    dfb $01,$64 ; time bomb
+
+* ProDOS I/O routines
+*
+* Get the current prefix and set it, allowing file access
+* relative to .SYSTEM file as simple filenames.
+InitializeIO
+         jsr    MLI
+         dfb    MLI_GETPREFIX
+         da     PrefixParams
+         bcs    :error
+         dfb    MLI_SETPREFIX
+         da     PrefixParams
+:error   rts
+
+* Simple file I/O.
+* Note: all I/O is page aligned and can only be complete pages
+* carry set on error
+* io_src_addr_hi - page offset into input file (seek)
+* io_src_count_hi - number of pages to read (length)
+* io_tgt_addr_hi - page number to store to (addr HI)
+* TODO: allow different filenames and write routine
+ReadFile_lcl
+         jsr    MLI       ; open to read
+         dfb    MLI_OPENFILE
+         da     OpenParams
+         bcs    :error
+         lda    RefNum    ; use the file ref number for read and close
+         sta    RefNumR
+         sta    RefNumC
+         sta    RefNumS
+         lda    #0        ; all page aligned
+         sta    SeekAddr+0
+         sta    ReadAddr+0
+         sta    ReadLen+0
+         lda    io_src_addr_hi ; I/O page numbers/count
+         sta    SeekAddr+1
+         lda    io_src_count_hi
+         sta    ReadLen+1
+         lda    io_tgt_addr_hi
+         sta    ReadAddr+1
+         jsr    MLI       
+         dfb    MLI_SETMARK
+         da     SeekParams
+         jsr    MLI       
+         dfb    MLI_READFILE
+         da     ReadParams
+         jsr    MLI       ; close the file
+         dfb    MLI_CLOSEFILE
+         da     CloseParams
+:error   rts
+
+Filename dfb   14         ; length of filename
+         asc   'SPACEPARA.DATA '
+
+PrefixParams
+         dfb   1
+         dw    PDOS_io_buffer
+
+OpenParams
+         dfb   3
+         dw    Filename
+         dw    PDOS_io_buffer
+RefNum   dfb   0
+
+ReadParams
+         dfb   4
+RefNumR  dfb   0
+ReadAddr dw    $0000
+ReadLen  dw    $0000
+         dw    $0000
+
+SeekParams
+         dfb   2
+RefNumS  dfb   0
+         dfb   0          ; three byte addr limit to 64k
+SeekAddr dw    $0000
+
+CloseParams
+         dfb   1
+RefNumC  dfb   0
