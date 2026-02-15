@@ -259,12 +259,10 @@ LevelLO  asc   "0"
 ShieldHI asc   "0"         
 ShieldLo asc   "0"         
          asc   " "
-         dfb   11
-ShipHI   asc   "0"         
-ShipLo   asc   "0"         
+Ship0    dfb   11
+Ship1    dfb   11       
+Ship2    dfb   11        
          asc   " Fuel"
          hex   00         
 
-         ds    \
-SpriteBase
-         put   SPRITES.S
+         

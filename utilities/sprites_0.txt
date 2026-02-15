@@ -3,7 +3,13 @@
 # .=0 bit
 # @=1 bit
 # 0|1 after the 14 pixels is the high order bit for the scanline
+#
+# Other keywords:
+# 'sprite: x' - sprite number (0-23)
+# 'shift: x' - shift number (0-6)
+# 'filenum: x' - the file number:  SPACEPARA.{'A'+x}
 
+filenum: 0
 sprite: 0
 shift: 0
 12481241248124

@@ -27,6 +27,27 @@ HI          = $27
 
 * FontBase    = $c00
 
+SpriteBase  =  $8000
+
+Sprite_None   = $ff
+Sprite_Player = 0
+Sprite_Cursor = 1
+Sprite_Fuel   = 2
+Sprite_Shield = 3
+Sprite_Exp0   = 4
+Sprite_Exp1   = 5
+Sprite_Exp2   = 6
+Sprite_Exp3   = 7
+
+Sprite_Wall0  = 8
+Sprite_Wall1  = 9
+Sprite_Wall2  = 10
+Sprite_Wall3  = 11
+Sprite_Enemy0 = 12
+Sprite_Enemy1 = 13
+Sprite_Enemy2 = 14
+Sprite_Enemy3 = 15
+
 gr_idx      = $f9
 gr_xpos     = $fa
 gr_ypos     = $fb
@@ -39,6 +60,7 @@ gr_height   = $ff
 io_src_addr_hi = $f9
 io_src_count_hi = $fa
 io_tgt_addr_hi = $fb
+io_file_idx =  $fc
 
 * Joystick state (0,1,2) "low","center","high"
 * call JoyUpdate to update the values

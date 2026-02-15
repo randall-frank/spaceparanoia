@@ -122,11 +122,23 @@ sta_text sta   $ffff,y
 mult36   dfb   0*36,1*36,2*36,3*36,4*36,5*36,6*36,7*36
 
 * draw sprite gr_idx at gr_xpos (pixels), gr_ypos
+* if gr_idx is Sprite_None, fake draw a sprite, taking roughly
+* the same amount of time (slightly faster).
 DrawSprite_l
          lda   gr_idx
-         asl
+         cmp   #Sprite_None
+         bne   :regular
+         ldx   #$B1       ; LDA (ZP),Y
+         stx   StoreIns
+         lda   #0
+         sta   gr_xpos
+         sta   gr_ypos
+         beq   :go
+:regular ldx   #$91       ; STA (ZP),Y
+         stx   StoreIns
+:go      asl
          clc
-         adc   #$80
+         adc   #>SpriteBase    ; the sprites start at SpriteBase
          sta   fetch_data_hi
          inc
          sta   fetch_mask_hi
@@ -152,7 +164,7 @@ DrawSprite_l
 ]byte    lda   (LO),y
 fth_data and   fetch_mask_lo,x
 fth_mask ora   fetch_data_lo,x
-         sta   (LO),y
+StoreIns sta   (LO),y
          iny
          inx
          dec   tmp_cnt
@@ -639,11 +651,16 @@ InitializeIO
 * Simple file I/O.
 * Note: all I/O is page aligned and can only be complete pages
 * carry set on error
+* io_file_idx - the file index to read from (0=core)
 * io_src_addr_hi - page offset into input file (seek)
 * io_src_count_hi - number of pages to read (length)
 * io_tgt_addr_hi - page number to store to (addr HI)
-* TODO: allow different filenames and write routine
+* TODO: allow more filenames and write routine
 ReadFile_lcl
+         lda    io_file_idx
+         clc
+         adc    #$41      ; Add to "A"
+         sta    FileIdx
          jsr    MLI       ; open to read
          dfb    MLI_OPENFILE
          da     OpenParams
@@ -673,8 +690,11 @@ ReadFile_lcl
          da     CloseParams
 :error   rts
 
-Filename dfb   14         ; length of filename
-         asc   'SPACEPARA.DATA '
+* Note: filename is SPACEPARA.{X} where {X} is A,B,C,... 
+* gr_idx + 'A'
+Filename dfb   11         ; length of filename
+         asc   'SPACEPARA.A    '
+FileIdx  =     Filename+11
 
 PrefixParams
          dfb   1

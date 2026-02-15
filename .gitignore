@@ -6,7 +6,7 @@ ciderpres*/
 src/VERSION.S
 src/FONTSRC.S
 src/XPOS_TABLE.S
-src/SPRITES.S
+src/SPRITES_*
 src/*_Output.txt
 src/*_Symbols.txt
 bin/DRAW*

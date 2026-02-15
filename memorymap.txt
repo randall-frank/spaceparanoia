@@ -15,8 +15,8 @@ Simple memory map:
 9000 - Sprite data (8-15)
 a000 - Sprite data (16-23)
 
+Extra characters:
 11 = ship
-
 offset = $58
 1248124
 ..**... 0c
@@ -64,22 +64,23 @@ thus, each sprite is 512 bytes (page aligned) and 8 sprites per 4k.
 
 Sprites are in 3 4k "banks" of 8 sprites
 
-$7000 - core ships/icons
+$8000 - core ships/icons
 0=player ship
 1=player cursor
 2=Fuel canister
 3=Shield canister
 4-7=Explosions
 
-$8000 - level ships
+$9000 - level ships
 0-3=walls
 4-7=ships
 
-$9000 - level boss images
+$A000 - level boss images
 0-1=missiles
 2-7=body
 
-These are all stored in the file: "SPACEPARA.DATA"
+These are all stored in the file: "SPACEPARA.{x}" where {x} is 'A'
+for the core file and can be B,C,D...
 
 This file can be 64k for 16 "banks" of sprites.  The first 4k bank
 is the "core" block.  If the next 3 banks are random bosses, then

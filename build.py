@@ -130,6 +130,8 @@ log.info("Assembling 6502 source code...")
 # Merlin does not handle subdirs very well...
 orig_dir = os.getcwd()
 os.chdir("src")
+for name in glob.glob("SPRITES_*.S"):
+    files.append(name)
 for name in files:
     cmd = [os.path.join("..", assembler), os.path.join("..", assembler_libdir), name]
     log.info(f"Assembling: {name}")
@@ -206,7 +208,7 @@ for name in os.listdir("basic"):
         os.remove(os.path.join("basic", root))
         log.info(f"Imported: basic/{name} as {root}")
 
-skip_prefix = ["_", "BIGFONT", "DRAWING", "LOADER", "TITLE", "SPACEPARA"]
+skip_prefix = ["_", "BIGFONT", "DRAWING", "LOADER", "TITLE", "SPACEPARA#"]
 for name in os.listdir("bin"):
     valid = True
     for s in skip_prefix:
