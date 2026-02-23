@@ -60,6 +60,7 @@ def gen_hex(shift, line, mask=False):
 
 def gen_file(name):
     sprites = {}
+    sprites_merge = {}
 
     pad = "         "
     s = "* Sprite conversion to hex tables\n"
@@ -68,6 +69,7 @@ def gen_file(name):
     out_idx = 0
     sprite_num = 0
     sprite_shift = 0
+    sprite_merge = True
     image = []
     in_image = False
     with open(name,"r") as fp:
@@ -79,9 +81,13 @@ def gen_file(name):
                 continue
             elif line.startswith("sprite:"):
                 sprite_num = int(line[7:])
+                sprite_merge = True
                 continue
             elif line.startswith("shift:"):
                 sprite_shift = int(line[6:])
+                continue
+            elif line.startswith("nomerge"):
+                sprite_merge = False
                 continue
             elif line.startswith("filenum:"):
                 out_idx = int(line[8:])
@@ -97,6 +103,7 @@ def gen_file(name):
                     if sprite_num not in sprites:
                         sprites[sprite_num] = {}
                     sprites[sprite_num][sprite_shift] = image
+                    sprites_merge[sprite_num] = sprite_merge
                     image=[]
             elif in_image:
                 image.append(line)
@@ -104,6 +111,7 @@ def gen_file(name):
     for sprite_num in range(len(sprites)):
         s += f"{pad}ds   \\\n"
         s += f"* Sprite# {sprite_num}\n"
+        sprite_merge = sprites_merge[sprite_num]
         for sprite_shift in range(len(sprites[sprite_num])):
             s += f"* Shift# {sprite_shift}\n"
             for line in sprites[sprite_num][sprite_shift]:
@@ -115,24 +123,28 @@ def gen_file(name):
         # 9 shifts - [-1,0,1] 
         #    walk the shifted, 'or'ed input image clearing mask bits
         # use the resulting mask, shifted for [0-6]
-        merged = []
-        mask = []
-        for i in range(12):
-            merged.append("."*14+"1")
-            mask.append("@"*14+"1")
-        for sprite_shift in range(len(sprites[sprite_num])):
-            merge_bits(merged, sprites[sprite_num][sprite_shift])
-        clear_mask(mask, merged, -1, -1)
-        clear_mask(mask, merged, -1,  0)
-        clear_mask(mask, merged, -1,  1)
-        clear_mask(mask, merged,  0, -1)
-        clear_mask(mask, merged,  0,  0)
-        clear_mask(mask, merged,  0,  1)
-        clear_mask(mask, merged,  1, -1)
-        clear_mask(mask, merged,  1,  0)
-        clear_mask(mask, merged,  1,  1)
         s += f"* Sprite mask# {sprite_num}\n"
         for sprite_shift in range(len(sprites[sprite_num])):
+            merged = []
+            mask = []
+            for i in range(12):
+                merged.append("."*14+"1")
+                mask.append("@"*14+"1")
+            for tmp_sprite_shift in range(len(sprites[sprite_num])):
+                if not sprite_merge:
+                    if tmp_sprite_shift != sprite_shift:
+                        print("Skipping merge", sprite_num, sprite_shift)
+                        continue
+                merge_bits(merged, sprites[sprite_num][tmp_sprite_shift])
+            clear_mask(mask, merged, -1, -1)
+            clear_mask(mask, merged, -1,  0)
+            clear_mask(mask, merged, -1,  1)
+            clear_mask(mask, merged,  0, -1)
+            clear_mask(mask, merged,  0,  0)
+            clear_mask(mask, merged,  0,  1)
+            clear_mask(mask, merged,  1, -1)
+            clear_mask(mask, merged,  1,  0)
+            clear_mask(mask, merged,  1,  1)
             s += f"* Shift mask# {sprite_shift}\n"
             for line in mask:
                 s += f"{pad}{gen_hex(sprite_shift,line,mask=True)}\n"
